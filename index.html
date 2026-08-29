@@ -499,6 +499,17 @@ body::before{
 }
 .suggestion-item .who .time{ color:#B8A9AE; display:block; margin-top:2px; white-space:nowrap; }
 
+.suggestion-item .sugg-preview-btn{
+  width: 34px; height:34px; border-radius:50%;
+  background: var(--cream-deep); color: var(--rose-deep);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition: background .25s ease, transform .2s ease;
+  font-size: 12px;
+}
+.suggestion-item .sugg-preview-btn:hover{ background: var(--gold-light); transform: scale(1.08); }
+.suggestion-item .sugg-preview-btn.playing{ background: var(--rose); color:#fff; }
+.suggestion-item .sugg-preview-btn:disabled{ opacity:.3; cursor:not-allowed; }
+
 .list-empty{
   text-align:center; padding: 30px 10px; color: var(--ink-soft); font-size:.92rem;
 }
@@ -946,6 +957,18 @@ function stopActiveAudio(){
   activeAudio = null; activeBtn = null;
 }
 
+function togglePreview(btn, previewUrl){
+  if (!previewUrl) return;
+  if (activeBtn === btn){ stopActiveAudio(); return; }
+  stopActiveAudio();
+  const audio = new Audio(previewUrl);
+  audio.play().catch(()=>showToast('پخش پیش‌نمایش ممکن نشد'));
+  audio.addEventListener('ended', stopActiveAudio);
+  btn.classList.add('playing');
+  btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+  activeAudio = audio; activeBtn = btn;
+}
+
 function renderResults(list, source){
   resultsTitle.style.display = 'flex';
   resultsArea.innerHTML = '';
@@ -997,16 +1020,7 @@ function renderResults(list, source){
 
     const previewBtn = card.querySelector('.preview-btn');
     if (preview){
-      previewBtn.addEventListener('click', ()=>{
-        if (activeBtn === previewBtn){ stopActiveAudio(); return; }
-        stopActiveAudio();
-        const audio = new Audio(preview);
-        audio.play().catch(()=>showToast('پخش پیش‌نمایش ممکن نشد', 'error'));
-        audio.addEventListener('ended', stopActiveAudio);
-        previewBtn.classList.add('playing');
-        previewBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-        activeAudio = audio; activeBtn = previewBtn;
-      });
+      previewBtn.addEventListener('click', ()=> togglePreview(previewBtn, preview));
     }
 
     card.querySelector('.suggest-btn').addEventListener('click', ()=>{
@@ -1214,14 +1228,22 @@ function renderSuggestionItem(item){
   el.className = 'suggestion-item';
   const by = item.suggested_by ? escapeHtml(item.suggested_by) : 'ناشناس';
   const art = item.artwork_url;
+  const preview = item.preview_url;
   el.innerHTML = `
     <div class="icon">${art ? `<img src="${art}" alt="">` : '<i class="fa-solid fa-heart"></i>'}</div>
     <div class="info">
       <div class="t">${escapeHtml(item.track_name)}</div>
       <div class="a">${escapeHtml(item.artist_name)}</div>
     </div>
+    <button class="sugg-preview-btn" ${preview ? '' : 'disabled title="پیش‌نمایش موجود نیست"'}>
+      <i class="fa-solid fa-play"></i>
+    </button>
     <div class="who"><span class="who-name">${by}</span><span class="time">${formatRelativeTime(item.created_at)}</span></div>
   `;
+  if (preview){
+    const btn = el.querySelector('.sugg-preview-btn');
+    btn.addEventListener('click', ()=> togglePreview(btn, preview));
+  }
   return el;
 }
 
