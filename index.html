@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>آهنگ‌های عروسی ما را انتخاب کن 💍</title>
+<meta name="description" content="دوستان و مهمان‌های عزیز، آهنگ موردعلاقه‌تان را برای مراسم عروسی پیشنهاد بدهید.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root{
+  --rose:        #C7376A;
+  --rose-deep:   #9E2650;
+  --gold:        #C9A227;
+  --gold-light:  #E9C468;
+  --cream:       #FFF8F0;
+  --cream-deep:  #FBEFE0;
+  --lavender:    #A78BC9;
+  --mint:        #8FD9C4;
+  --ink:         #3B2B31;
+  --ink-soft:    #6E5860;
+  --white:       #FFFFFF;
+
+  --font-display: 'Cormorant Garamond', 'Vazirmatn', serif;
+  --font-fa:      'Vazirmatn', sans-serif;
+  --font-latin:   'Poppins', 'Vazirmatn', sans-serif;
+
+  --radius-lg: 26px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --shadow-soft: 0 10px 40px rgba(158, 38, 80, 0.12);
+  --shadow-lift: 0 18px 50px rgba(158, 38, 80, 0.20);
+}
+
+*{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin:0;
+  font-family: var(--font-fa);
+  background: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1,h2,h3{ font-family: var(--font-display); font-weight: 600; margin: 0; }
+button{ font-family: inherit; cursor: pointer; border: none; }
+input{ font-family: inherit; }
+::selection{ background: var(--gold-light); color: var(--ink); }
+
+.latin{ font-family: var(--font-latin); }
+
+/* Background wash */
+body::before{
+  content:"";
+  position: fixed; inset:0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(199,55,106,0.06), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(201,162,39,0.08), transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(167,139,201,0.07), transparent 45%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ============================================================
+   FLOATING PARTICLES (hearts / petals) — signature ambient layer
+   ============================================================ */
+#particle-field{
+  position: fixed; inset:0;
+  pointer-events:none;
+  overflow:hidden;
+  z-index: 5;
+}
+.particle{
+  position:absolute;
+  top:-10%;
+  opacity:0;
+  will-change: transform, opacity;
+  animation-name: fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes fall{
+  0%{ transform: translateY(-10vh) translateX(0) rotate(0deg); opacity:0; }
+  8%{ opacity: .85; }
+  92%{ opacity: .7; }
+  100%{ transform: translateY(110vh) translateX(var(--drift,40px)) rotate(360deg); opacity:0; }
+}
+
+/* ============================================================
+   LANDING SCREEN
+   ============================================================ */
+#landing{
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh; /* mobile browser chrome-safe viewport height */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding: 40px 20px calc(40px + env(safe-area-inset-bottom));
+  padding-top: calc(40px + env(safe-area-inset-top));
+  z-index: 2;
+  transition: opacity .7s ease, visibility .7s ease;
+}
+#landing.hidden{
+  opacity:0;
+  visibility:hidden;
+  position:absolute;
+  pointer-events:none;
+}
+.landing-inner{ max-width: 720px; position:relative; z-index:3; }
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-family: var(--font-latin);
+  letter-spacing: .35em;
+  font-size: 12px;
+  color: var(--rose-deep);
+  text-transform: uppercase;
+  margin-bottom: 22px;
+  opacity:0;
+  animation: rise .9s .1s ease forwards;
+}
+.eyebrow .line{ width: 34px; height:1px; background: var(--gold); display:inline-block; }
+
+.hero-title{
+  font-size: clamp(2.4rem, 6vw, 4.4rem);
+  line-height: 1.25;
+  color: var(--ink);
+  opacity:0;
+  animation: rise 1s .25s ease forwards;
+}
+.hero-title .ring-icon{
+  display:inline-block;
+  color: var(--gold);
+  margin-inline-start: 6px;
+  animation: sway 3.5s ease-in-out infinite;
+  transform-origin: top center;
+}
+@keyframes sway{ 0%,100%{ transform: rotate(-6deg);} 50%{ transform: rotate(6deg);} }
+
+.hero-underline{
+  width: 220px; height: 18px;
+  margin: 10px auto 26px;
+  opacity:0;
+  animation: rise 1s .4s ease forwards;
+}
+.hero-underline path{
+  stroke: var(--gold);
+  stroke-width: 3;
+  fill:none;
+  stroke-linecap: round;
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: draw 1.4s .6s ease forwards;
+}
+@keyframes draw{ to{ stroke-dashoffset:0; } }
+
+.hero-sub{
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--ink-soft);
+  line-height: 2;
+  max-width: 520px;
+  margin: 0 auto 40px;
+  opacity:0;
+  animation: rise 1s .55s ease forwards;
+}
+
+@keyframes rise{
+  from{ opacity:0; transform: translateY(22px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+.seal-btn{
+  position: relative;
+  display:inline-flex;
+  flex-direction: column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width: 172px; height:172px;
+  padding: 20px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--rose) 0%, var(--rose-deep) 100%);
+  color: var(--white);
+  box-shadow: var(--shadow-lift);
+  opacity:0;
+  animation: rise 1s .75s ease forwards, pulse-ring 3.2s 2s ease-in-out infinite;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  -webkit-tap-highlight-color: transparent;
+}
+.seal-btn span{ line-height: 1.4; }
+.seal-btn::before{
+  content:"";
+  position:absolute; inset: -10px;
+  border-radius:50%;
+  border: 1.5px dashed rgba(201,162,39,0.65);
+}
+.seal-btn i{ font-size: 26px; }
+.seal-btn span{ font-size: 14px; font-weight: 600; letter-spacing: .02em; }
+.seal-btn:hover{ transform: scale(1.06) rotate(-3deg); }
+.seal-btn:active{ transform: scale(.97); }
+@keyframes pulse-ring{
+  0%,100%{ box-shadow: var(--shadow-lift), 0 0 0 0 rgba(201,162,39,.35); }
+  50%{ box-shadow: var(--shadow-lift), 0 0 0 14px rgba(201,162,39,0); }
+}
+
+.scroll-hint{
+  margin-top: 26px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  opacity: 0;
+  animation: rise 1s .95s ease forwards;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+
+/* ============================================================
+   APP SCREEN
+   ============================================================ */
+#app-screen{
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 50px 22px calc(90px + env(safe-area-inset-bottom));
+  padding-left: max(22px, env(safe-area-inset-left));
+  padding-right: max(22px, env(safe-area-inset-right));
+  display:none;
+}
+#app-screen.visible{ display:block; }
+
+.app-header{
+  text-align:center;
+  margin-bottom: 40px;
+}
+.app-header h2{
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  color: var(--ink);
+}
+.app-header p{
+  color: var(--ink-soft);
+  margin-top: 8px;
+  font-size: .98rem;
+}
+
+/* Search */
+.search-wrap{
+  max-width: 640px;
+  margin: 0 auto 46px;
+  position: relative;
+}
+.search-box{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  background: var(--white);
+  border-radius: 999px;
+  padding: 8px 8px 8px 22px;
+  box-shadow: var(--shadow-soft);
+  border: 1.5px solid transparent;
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+.search-box:focus-within{
+  border-color: var(--gold-light);
+  box-shadow: var(--shadow-lift);
+}
+.search-box i.fa-magnifying-glass{ color: var(--ink-soft); font-size: 16px; flex-shrink:0; }
+.search-box input{
+  flex:1;
+  min-width: 0;
+  border:none;
+  outline:none;
+  background:transparent;
+  font-size: 16px; /* keep >=16px to stop iOS Safari auto-zoom on focus */
+  padding: 12px 4px;
+  color: var(--ink);
+}
+.search-box input::placeholder{ color: #C9B9BF; }
+.search-btn{
+  background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+  color:#fff;
+  border-radius: 999px;
+  padding: 13px 26px;
+  font-size: .95rem;
+  font-weight: 600;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
+  white-space: nowrap;
+  min-height: 46px; /* comfortable tap target */
+  flex-shrink: 0;
+}
+.search-btn:hover{ transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 10px 24px rgba(158,38,80,.3); }
+.search-btn:active{ transform: translateY(0) scale(.97); }
+.search-btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+
+/* Results */
+.section-title{
+  display:flex; align-items:center; gap:12px;
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+.section-title .dot{ width:8px; height:8px; border-radius:50%; background: var(--gold); }
+
+#results-area{ min-height: 40px; }
+
+.results-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.song-card{
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  position:relative;
+  overflow:hidden;
+  transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease;
+  animation: card-in .5s ease backwards;
+}
+.song-card::after{
+  content:"";
+  position:absolute; inset-inline-start:0; top:0; bottom:0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--gold), var(--rose));
+  opacity:0; transition: opacity .3s ease;
+}
+.song-card:hover{ transform: translateY(-6px); box-shadow: var(--shadow-lift); }
+.song-card:hover::after{ opacity:1; }
+@keyframes card-in{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform:none; } }
+
+.song-card .top-row{ display:flex; align-items:flex-start; gap:12px; }
+.song-card .art{
+  width:52px; height:52px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--cream-deep), var(--lavender));
+  display:flex; align-items:center; justify-content:center;
+  color: var(--rose-deep); font-size: 18px;
+  flex-shrink:0; overflow:hidden;
+}
+.song-card .art img{ width:100%; height:100%; object-fit:cover; }
+.song-card .meta{ flex:1; min-width:0; }
+.song-card .track{
+  font-weight: 700; font-size: 1.02rem; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.song-card .artist{ color: var(--ink-soft); font-size: .88rem; margin-top:2px; }
+.song-card .year{
+  font-family: var(--font-latin);
+  font-size: .72rem; color: var(--gold); font-weight:600;
+  margin-top: 4px;
+}
+.song-card .preview-btn{
+  width: 40px; height:40px; border-radius:50%;
+  background: var(--cream-deep); color: var(--rose-deep);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition: background .25s ease, transform .2s ease;
+  font-size: 13px;
+}
+.song-card .preview-btn:hover{ background: var(--gold-light); transform: scale(1.08); }
+.song-card .preview-btn.playing{ background: var(--rose); color:#fff; }
+.song-card .preview-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+.suggest-btn{
+  margin-top: 6px;
+  background: var(--cream-deep);
+  color: var(--rose-deep);
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-size: .88rem;
+  font-weight: 600;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition: background .25s ease, color .25s ease, transform .2s ease;
+}
+.suggest-btn:hover{ background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color:#fff; transform: translateY(-1px); }
+.suggest-btn.added{ background: var(--mint); color: #1c4d3f; pointer-events:none; }
+
+/* Skeletons */
+.skeleton-card{
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  display:flex; flex-direction:column; gap:12px;
+}
+.skeleton-line{
+  height: 12px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--cream-deep) 25%, #f4e6d4 37%, var(--cream-deep) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer{ 0%{ background-position: 100% 0; } 100%{ background-position: -100% 0; } }
+
+.spinner-wrap{
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  padding: 50px 0;
+  color: var(--ink-soft);
+}
+.heart-spinner{
+  width:46px; height:46px; position:relative;
+}
+.heart-spinner i{
+  position:absolute; inset:0; font-size:46px; color: var(--rose);
+  animation: heartbeat 1s ease-in-out infinite;
+}
+@keyframes heartbeat{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.2); } }
+
+/* Empty / error state */
+.empty-state{
+  text-align:center;
+  padding: 60px 20px;
+  color: var(--ink-soft);
+}
+.empty-state i{ font-size: 40px; color: var(--gold-light); margin-bottom: 14px; display:block; }
+.empty-state h3{ color: var(--ink); font-size: 1.2rem; margin-bottom: 6px; }
+.empty-state button{
+  margin-top: 16px;
+  background: none;
+  color: var(--rose-deep);
+  text-decoration: underline;
+  font-size: .9rem;
+}
+
+/* Suggestions list */
+.suggestions-section{
+  margin-top: 60px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  box-shadow: var(--shadow-soft);
+}
+.suggestions-head{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  margin-bottom: 22px;
+}
+.suggestions-head h3{ font-size: 1.25rem; }
+.count-badge{
+  font-family: var(--font-latin);
+  background: var(--cream-deep);
+  color: var(--rose-deep);
+  font-weight: 700;
+  font-size: .82rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.suggestions-list{
+  display:flex; flex-direction:column;
+}
+
+.suggestion-item{
+  display:flex; align-items:center; gap:14px;
+  padding: 14px 6px;
+  border-bottom: 1px dashed #EEDFCF;
+  animation: card-in .45s ease backwards;
+}
+.suggestion-item:last-child{ border-bottom:none; }
+.suggestion-item .icon{
+  width: 38px; height:38px; border-radius:50%;
+  background: linear-gradient(135deg, var(--mint), var(--lavender));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:14px; flex-shrink:0;
+  overflow:hidden;
+}
+.suggestion-item .icon img{ width:100%; height:100%; object-fit:cover; }
+.suggestion-item .info{ flex:1; min-width:0; }
+.suggestion-item .info .t{ font-weight:600; color: var(--ink); font-size:.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.suggestion-item .info .a{ color: var(--ink-soft); font-size:.82rem; }
+.suggestion-item .who{
+  text-align: left;
+  font-size: .78rem;
+  color: var(--gold);
+  flex-shrink:0;
+  max-width: 110px;
+}
+.suggestion-item .who .who-name{
+  display:block;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.suggestion-item .who .time{ color:#B8A9AE; display:block; margin-top:2px; white-space:nowrap; }
+
+.list-empty{
+  text-align:center; padding: 30px 10px; color: var(--ink-soft); font-size:.92rem;
+}
+.list-loading-row{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding: 18px 0;
+  color: var(--ink-soft);
+  font-size: .85rem;
+}
+.list-loading-row i{ color: var(--rose); }
+.list-end{
+  text-align:center; padding: 16px 0 4px;
+  color:#C9B9BF; font-size:.8rem;
+}
+#list-sentinel{ height: 1px; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay{
+  position: fixed; inset:0;
+  background: rgba(59,43,49,0.55);
+  backdrop-filter: blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  z-index: 100;
+  opacity:0; visibility:hidden;
+  transition: opacity .3s ease, visibility .3s ease;
+  padding: 20px;
+}
+.modal-overlay.show{ opacity:1; visibility:visible; }
+.modal-box{
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  padding: 34px 30px;
+  max-width: 420px; width:100%;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100svh - 40px);
+  overflow-y: auto;
+  box-shadow: var(--shadow-lift);
+  position:relative;
+  transform: scale(.9) translateY(10px);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  text-align:center;
+}
+.modal-overlay.show .modal-box{ transform: scale(1) translateY(0); }
+.modal-close{
+  position:absolute; top:16px; inset-inline-end:16px;
+  width:38px; height:38px; border-radius:50%;
+  background: var(--cream-deep); color: var(--ink-soft);
+  display:flex; align-items:center; justify-content:center;
+  transition: background .2s ease;
+}
+.modal-close:hover{ background: var(--gold-light); }
+.modal-box .modal-icon{
+  width:56px; height:56px; border-radius:50%;
+  background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:22px; margin: 0 auto 16px;
+}
+.modal-box h3{ font-size: 1.25rem; margin-bottom: 4px; }
+.modal-box .modal-track{ color: var(--rose-deep); font-weight:700; }
+.modal-box .modal-artist{ color: var(--ink-soft); font-size:.9rem; margin-bottom: 20px; }
+.modal-box input{
+  width:100%;
+  border: 1.5px solid #EEDFCF;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 16px; /* keep >=16px to stop iOS Safari auto-zoom on focus */
+  outline:none;
+  background:#fff;
+  transition: border-color .25s ease;
+  margin-bottom: 20px;
+}
+.modal-box input:focus{ border-color: var(--gold); }
+.modal-actions{ display:flex; gap:10px; }
+.modal-actions button{
+  flex:1;
+  padding: 13px;
+  border-radius: 999px;
+  font-weight:600;
+  font-size:.92rem;
+  transition: transform .2s ease, filter .2s ease;
+}
+.btn-cancel{ background: var(--cream-deep); color: var(--ink-soft); }
+.btn-cancel:hover{ filter: brightness(.97); }
+.btn-confirm{ background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color:#fff; }
+.btn-confirm:hover{ transform: translateY(-2px); }
+.btn-confirm:disabled{ opacity:.6; pointer-events:none; }
+
+/* Success overlay inside modal */
+.success-view{ display:none; flex-direction:column; align-items:center; gap:10px; }
+.success-view.show{ display:flex; }
+.success-view .check{
+  width:64px; height:64px; border-radius:50%;
+  background: var(--mint);
+  display:flex; align-items:center; justify-content:center;
+  font-size: 28px; color:#1c4d3f;
+  animation: pop .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop{ 0%{ transform:scale(0); } 70%{ transform:scale(1.15); } 100%{ transform:scale(1); } }
+.success-view h3{ font-size:1.15rem; }
+.success-view p{ color: var(--ink-soft); font-size:.9rem; }
+
+/* Toast */
+#toast{
+  position: fixed;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  left:50%; right:auto;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color:#fff;
+  padding: 13px 22px; border-radius: 999px;
+  font-size: .88rem;
+  box-shadow: var(--shadow-lift);
+  opacity:0; visibility:hidden; transition: all .35s ease;
+  z-index: 200;
+  display:flex; align-items:center; gap:8px;
+  text-align: center;
+}
+#toast.show{ opacity:1; visibility:visible; transform: translateX(-50%) translateY(0); }
+#toast i{ color: var(--mint); }
+
+/* Footer note */
+.site-footer{
+  text-align:center; margin-top: 60px;
+  color: #C9B9BF; font-size: .8rem;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+
+@media (max-width: 600px){
+  .seal-btn{ width:152px; height:152px; }
+  .seal-btn span{ font-size: 13px; }
+  .suggestions-head{ flex-direction:column; align-items:flex-start; }
+  .modal-box{ padding: 26px 18px; }
+
+  /* Stack the search bar so the button always has room and stays tappable */
+  .search-box{
+    flex-wrap: wrap;
+    border-radius: 22px;
+    padding: 14px 16px;
+  }
+  .search-box i.fa-magnifying-glass{ order:1; }
+  .search-box input{ order:2; width: 100%; flex-basis: 100%; padding: 6px 4px 10px; }
+  .search-btn{ order:3; width: 100%; flex-basis: 100%; justify-content:center; }
+
+  .app-header{ margin-bottom: 28px; }
+  #app-screen{ padding: 36px 16px 70px; }
+
+  .results-grid{ grid-template-columns: 1fr; gap: 14px; }
+
+  .song-card .track{ white-space: normal; }
+  .suggestions-section{ padding: 24px 18px; }
+  .suggestion-item{ align-items:flex-start; }
+  .suggestion-item .who{ display:flex; flex-direction:column; align-items:flex-end; }
+}
+
+@media (max-width: 380px){
+  .hero-title{ font-size: 1.9rem; }
+  .eyebrow{ letter-spacing: .22em; font-size: 10.5px; }
+}
+</style>
+</head>
+<body>
+
+<div id="particle-field" aria-hidden="true"></div>
+
+<!-- ============================================================
+     LANDING
+     ============================================================ -->
+<section id="landing">
+  <div class="landing-inner">
+    <div class="eyebrow"><span class="line"></span> به مراسم ما خوش آمدید <span class="line"></span></div>
+    <h1 class="hero-title">توی انتخاب آهنگ‌ها کمکمون کن!<span class="ring-icon">💍</span></h1>
+    <svg class="hero-underline" viewBox="0 0 220 18"><path d="M4 12 Q 60 2, 110 10 T 216 8"/></svg>
+    <p class="hero-sub">با پیشنهاد آهنگ‌های موردعلاقه‌ات، به ما در ساختن خاطره‌ای فراموش‌نشدنی کمک کن. هر آهنگی که ما را برقصاند، همان چیزی‌ست که می‌خواهیم.</p>
+    <button class="seal-btn" id="enter-btn">
+      <i class="fa-solid fa-music"></i>
+      <span>ورود به لیست آهنگ‌ها</span>
+    </button>
+    <div class="scroll-hint"><i class="fa-solid fa-heart" style="font-size:10px;color:var(--rose)"></i> بزن بریم آهنگ پیشنهاد بدیم</div>
+  </div>
+</section>
+
+<!-- ============================================================
+     APP
+     ============================================================ -->
+<main id="app-screen">
+  <div class="app-header" data-aos="fade-up">
+    <h2>دنبال چه آهنگی هستی؟ 🎶</h2>
+    <p>اسم خواننده یا آهنگ رو بنویس، پیدا کن، و برای ما پیشنهادش بده.</p>
+  </div>
+
+  <div class="search-wrap" data-aos="fade-up" data-aos-delay="100">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="search-input" placeholder="مثلاً: Ed Sheeran یا شادمهر عقیلی…" autocomplete="off">
+      <button class="search-btn" id="search-btn"><i class="fa-solid fa-magnifying-glass"></i> جستجو</button>
+    </div>
+  </div>
+
+  <div data-aos="fade-up" data-aos-delay="150">
+    <div class="section-title" id="results-title" style="display:none;">
+      <span class="dot"></span> نتایج جستجو
+    </div>
+    <div id="results-area"></div>
+  </div>
+
+  <section class="suggestions-section" data-aos="fade-up">
+    <div class="suggestions-head">
+      <h3>💌 پیشنهادهای دوستان</h3>
+      <span class="count-badge" id="count-badge">۰ پیشنهاد</span>
+    </div>
+    <div class="suggestions-list" id="suggestions-list">
+      <div class="list-empty" id="list-empty">هنوز آهنگی پیشنهاد نشده. اولین نفر باش! ✨</div>
+    </div>
+    <div class="list-loading-row" id="list-loading-row" style="display:none;"><i class="fa-solid fa-spinner fa-spin"></i> در حال بارگذاری پیشنهادهای بیشتر...</div>
+    <div class="list-end" id="list-end" style="display:none;">همه‌ی پیشنهادها نمایش داده شد 🎉</div>
+    <div id="list-sentinel"></div>
+  </section>
+
+  <div class="site-footer">ساخته‌شده با ❤️ برای بهترین روز زندگی‌مان</div>
+</main>
+
+<!-- ============================================================
+     MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close" aria-label="بستن"><i class="fa-solid fa-xmark"></i></button>
+
+    <div id="modal-form-view">
+      <div class="modal-icon"><i class="fa-solid fa-heart"></i></div>
+      <h3>پیشنهاد این آهنگ</h3>
+      <div class="modal-track" id="modal-track-name">—</div>
+      <div class="modal-artist" id="modal-artist-name">—</div>
+      <input type="text" id="modal-name-input" placeholder="نام خودت را وارد کن... (اختیاری)" maxlength="40">
+      <div class="modal-actions">
+        <button class="btn-cancel" id="modal-cancel">انصراف</button>
+        <button class="btn-confirm" id="modal-confirm"><i class="fa-solid fa-paper-plane"></i> ثبت پیشنهاد</button>
+      </div>
+    </div>
+
+    <div class="success-view" id="modal-success-view">
+      <div class="check"><i class="fa-solid fa-check"></i></div>
+      <h3>ثبت شد! 🎉</h3>
+      <p>ممنون که آهنگتو باهامون به اشتراک گذاشتی.</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-text"></span></div>
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+<script>
+/* ============================================================
+   CONFIG — پر کردن این بخش الزامی است
+   ============================================================
+   ۱) در supabase.com یک پروژه‌ی رایگان بساز.
+   ۲) از Project Settings > API مقادیر زیر را کپی کن.
+   ۳) کوئری ساخت جدول را از README.md اجرا کن.
+*/
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const TABLE_NAME = 'suggestions';
+
+let supabaseClient = null;
+try{
+  if (SUPABASE_URL && SUPABASE_URL.startsWith('http') && window.supabase){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(e){ console.warn('Supabase init skipped:', e); }
+
+/* ============================================================
+   PARTICLE FIELD (falling hearts / petals)
+   ============================================================ */
+(function initParticles(){
+  const field = document.getElementById('particle-field');
+  const symbols = ['💕','🌸','✨','💛'];
+  const COUNT = window.innerWidth < 640 ? 10 : 18;
+  for(let i=0;i<COUNT;i++){
+    const el = document.createElement('span');
+    el.className = 'particle';
+    el.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    const size = 12 + Math.random()*16;
+    el.style.fontSize = size + 'px';
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.setProperty('--drift', (Math.random()*120-60)+'px');
+    const duration = 12 + Math.random()*14;
+    el.style.animationDuration = duration + 's';
+    el.style.animationDelay = (Math.random()*duration) + 's';
+    field.appendChild(el);
+  }
+})();
+
+/* ============================================================
+   LANDING → APP TRANSITION
+   ============================================================ */
+const landing = document.getElementById('landing');
+const appScreen = document.getElementById('app-screen');
+const enterBtn = document.getElementById('enter-btn');
+
+window.addEventListener('load', ()=>{
+  if (window.confetti){
+    confetti({ particleCount: 90, spread: 100, origin: { y: 0.35 }, colors: ['#C7376A','#C9A227','#E9C468','#A78BC9'] });
+    setTimeout(()=> confetti({ particleCount: 50, spread: 130, origin: { y: 0.2, x: 0.15 } }), 400);
+    setTimeout(()=> confetti({ particleCount: 50, spread: 130, origin: { y: 0.2, x: 0.85 } }), 700);
+  }
+});
+
+enterBtn.addEventListener('click', ()=>{
+  landing.classList.add('hidden');
+  appScreen.classList.add('visible');
+  window.scrollTo({ top:0, behavior:'smooth' });
+  if (window.AOS) AOS.refreshHard();
+  loadSuggestions();
+});
+
+if (window.AOS) AOS.init({ duration: 700, once: true, offset: 40 });
+
+/* ============================================================
+   PERSIAN TEXT NORMALIZATION
+   ============================================================ */
+function normalize(str){
+  if (!str) return '';
+  return str
+    .toString()
+    .toLowerCase()
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove diacritics
+    .replace(/[\u200c\u200f\u200e]/g, ' ') // ZWNJ / direction marks
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* ============================================================
+   LOCAL DATASET SEARCH  (falls back to iTunes API)
+   ============================================================ */
+let localSongs = [];
+let localLoaded = false;
+
+async function ensureLocalSongsLoaded(){
+  if (localLoaded) return;
+  try{
+    const res = await fetch('songs.json');
+    if (res.ok){
+      localSongs = await res.json();
+    }
+  }catch(e){
+    console.warn('songs.json در دسترس نبود، فقط از iTunes API استفاده می‌شود.', e);
+  }
+  localLoaded = true;
+}
+
+function searchLocal(query){
+  const q = normalize(query);
+  if (!q) return [];
+  return localSongs.filter(s=>{
+    const t = normalize(s.trackName);
+    const a = normalize(s.artistName);
+    return t.includes(q) || a.includes(q);
+  }).slice(0, 24);
+}
+
+async function searchItunes(query){
+  // NOTE: `media=music` makes iTunes 301-redirect to a `musics://` URL that
+  // fetch() cannot follow. `entity=song` hits the same search index and
+  // returns JSON directly with CORS enabled, so we use that instead.
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=24`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('iTunes API error');
+  const data = await res.json();
+  return data.results || [];
+}
+
+async function performSearch(query){
+  await ensureLocalSongsLoaded();
+  let results = searchLocal(query);
+  let usedFallback = false;
+  if (results.length === 0){
+    try{
+      results = await searchItunes(query);
+      usedFallback = true;
+    }catch(e){
+      console.warn('iTunes fallback failed', e);
+    }
+  }
+  return { results, usedFallback };
+}
+
+/* ============================================================
+   RENDER RESULTS
+   ============================================================ */
+const resultsArea = document.getElementById('results-area');
+const resultsTitle = document.getElementById('results-title');
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+
+function showSkeleton(){
+  resultsTitle.style.display = 'flex';
+  const grid = document.createElement('div');
+  grid.className = 'results-grid';
+  for(let i=0;i<6;i++){
+    const c = document.createElement('div');
+    c.className = 'skeleton-card';
+    c.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div class="skeleton-line" style="width:52px;height:52px;border-radius:12px;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <div class="skeleton-line" style="width:80%;"></div>
+          <div class="skeleton-line" style="width:50%;"></div>
+        </div>
+      </div>
+      <div class="skeleton-line" style="width:100%;height:36px;border-radius:999px;margin-top:6px;"></div>
+    `;
+    grid.appendChild(c);
+  }
+  resultsArea.innerHTML = '';
+  resultsArea.appendChild(grid);
+}
+
+function yearFromDate(dateStr){
+  if (!dateStr) return '';
+  const y = new Date(dateStr).getFullYear();
+  return isNaN(y) ? '' : y;
+}
+
+let activeAudio = null;
+let activeBtn = null;
+
+function stopActiveAudio(){
+  if (activeAudio){ activeAudio.pause(); activeAudio.currentTime = 0; }
+  if (activeBtn){ activeBtn.classList.remove('playing'); activeBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; }
+  activeAudio = null; activeBtn = null;
+}
+
+function renderResults(list, source){
+  resultsTitle.style.display = 'flex';
+  resultsArea.innerHTML = '';
+
+  if (!list || list.length === 0){
+    resultsArea.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-music"></i>
+        <h3>آهنگی پیدا نشد 😅</h3>
+        <p>یه اسم دیگه امتحان کن، شاید با املای دیگه‌ای باشه.</p>
+        <button id="retry-btn">پاک کردن جستجو و امتحان مجدد</button>
+      </div>`;
+    document.getElementById('retry-btn').addEventListener('click', ()=>{
+      searchInput.value = '';
+      searchInput.focus();
+      resultsArea.innerHTML = '';
+      resultsTitle.style.display = 'none';
+    });
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'results-grid';
+
+  list.forEach((song, idx)=>{
+    const track = song.trackName || song.track || 'بدون‌نام';
+    const artist = song.artistName || song.artist || 'نامشخص';
+    const year = yearFromDate(song.releaseDate) || song.year || '';
+    const preview = song.previewUrl || song.preview || null;
+    const artwork = song.artworkUrl100 || song.artwork || null;
+
+    const card = document.createElement('div');
+    card.className = 'song-card';
+    card.style.animationDelay = (idx * 0.04) + 's';
+    card.innerHTML = `
+      <div class="top-row">
+        <div class="art">${artwork ? `<img src="${artwork}" alt="">` : '<i class="fa-solid fa-music"></i>'}</div>
+        <div class="meta">
+          <div class="track">${escapeHtml(track)}</div>
+          <div class="artist">${escapeHtml(artist)}</div>
+          ${year ? `<div class="year latin">${year}</div>` : ''}
+        </div>
+        <button class="preview-btn" ${preview ? '' : 'disabled title="پیش‌نمایش موجود نیست"'}>
+          <i class="fa-solid fa-play"></i>
+        </button>
+      </div>
+      <button class="suggest-btn"><i class="fa-solid fa-heart"></i> پیشنهاد این آهنگ</button>
+    `;
+
+    const previewBtn = card.querySelector('.preview-btn');
+    if (preview){
+      previewBtn.addEventListener('click', ()=>{
+        if (activeBtn === previewBtn){ stopActiveAudio(); return; }
+        stopActiveAudio();
+        const audio = new Audio(preview);
+        audio.play().catch(()=>showToast('پخش پیش‌نمایش ممکن نشد', 'error'));
+        audio.addEventListener('ended', stopActiveAudio);
+        previewBtn.classList.add('playing');
+        previewBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        activeAudio = audio; activeBtn = previewBtn;
+      });
+    }
+
+    card.querySelector('.suggest-btn').addEventListener('click', ()=>{
+      // Carry every field we might ever want to store — structured fields
+      // for display/queries, plus the full raw object as a safety net.
+      openModal({
+        track, artist,
+        trackId: song.trackId || null,
+        collectionName: song.collectionName || null,
+        artworkUrl: artwork,
+        previewUrl: preview,
+        trackViewUrl: song.trackViewUrl || null,
+        artistViewUrl: song.artistViewUrl || null,
+        genre: song.primaryGenreName || null,
+        releaseDate: song.releaseDate || null,
+        trackTimeMillis: song.trackTimeMillis || null,
+        country: song.country || null,
+        source: source || 'unknown',
+        raw: song
+      });
+    });
+
+    grid.appendChild(card);
+  });
+
+  resultsArea.appendChild(grid);
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function handleSearch(){
+  const q = searchInput.value.trim();
+  if (!q){
+    searchInput.focus();
+    return;
+  }
+  stopActiveAudio();
+  searchBtn.disabled = true;
+  showSkeleton();
+  try{
+    const { results, usedFallback } = await performSearch(q);
+    renderResults(results, usedFallback ? 'itunes' : 'local');
+  }catch(e){
+    resultsArea.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><h3>مشکلی پیش اومد</h3><p>لطفاً دوباره امتحان کن.</p></div>`;
+  }finally{
+    searchBtn.disabled = false;
+  }
+}
+
+searchBtn.addEventListener('click', handleSearch);
+searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') handleSearch(); });
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+const modalOverlay = document.getElementById('modal-overlay');
+const modalTrackName = document.getElementById('modal-track-name');
+const modalArtistName = document.getElementById('modal-artist-name');
+const modalNameInput = document.getElementById('modal-name-input');
+const modalConfirm = document.getElementById('modal-confirm');
+const modalFormView = document.getElementById('modal-form-view');
+const modalSuccessView = document.getElementById('modal-success-view');
+
+let pendingSuggestion = null;
+
+function openModal(song){
+  pendingSuggestion = song;
+  modalTrackName.textContent = song.track;
+  modalArtistName.textContent = song.artist;
+  modalNameInput.value = '';
+  modalFormView.style.display = 'block';
+  modalSuccessView.classList.remove('show');
+  modalOverlay.classList.add('show');
+  setTimeout(()=>modalNameInput.focus(), 300);
+}
+
+function closeModal(){
+  modalOverlay.classList.remove('show');
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e)=>{ if (e.target === modalOverlay) closeModal(); });
+
+modalConfirm.addEventListener('click', async ()=>{
+  if (!pendingSuggestion) return;
+  modalConfirm.disabled = true;
+  modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ثبت...';
+
+  // Store every field we have, structured for querying/display, plus the
+  // full raw source object in raw_data (jsonb) as a catch-all.
+  const payload = {
+    track_id: pendingSuggestion.trackId,
+    track_name: pendingSuggestion.track,
+    artist_name: pendingSuggestion.artist,
+    collection_name: pendingSuggestion.collectionName,
+    artwork_url: pendingSuggestion.artworkUrl,
+    preview_url: pendingSuggestion.previewUrl,
+    track_view_url: pendingSuggestion.trackViewUrl,
+    artist_view_url: pendingSuggestion.artistViewUrl,
+    genre: pendingSuggestion.genre,
+    release_date: pendingSuggestion.releaseDate,
+    track_time_millis: pendingSuggestion.trackTimeMillis,
+    country: pendingSuggestion.country,
+    source: pendingSuggestion.source,
+    raw_data: pendingSuggestion.raw || null,
+    suggested_by: modalNameInput.value.trim() || null
+  };
+
+  const ok = await submitSuggestion(payload);
+
+  modalConfirm.disabled = false;
+  modalConfirm.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ثبت پیشنهاد';
+
+  if (ok){
+    modalFormView.style.display = 'none';
+    modalSuccessView.classList.add('show');
+    if (window.confetti){
+      confetti({ particleCount: 60, spread: 80, origin: { y: 0.6 }, colors: ['#C7376A','#C9A227','#8FD9C4'] });
+    }
+    // mark the suggest button as added, if still visible
+    markSuggestButtonAdded(pendingSuggestion);
+    setTimeout(closeModal, 1600);
+  } else {
+    showToast('ثبت پیشنهاد ممکن نشد. دوباره امتحان کن.', 'error');
+  }
+});
+
+function markSuggestButtonAdded(song){
+  document.querySelectorAll('.song-card').forEach(card=>{
+    const t = card.querySelector('.track')?.textContent;
+    const a = card.querySelector('.artist')?.textContent;
+    if (t === song.track && a === song.artist){
+      const btn = card.querySelector('.suggest-btn');
+      btn.classList.add('added');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> پیشنهاد شد';
+    }
+  });
+}
+
+/* ============================================================
+   SUPABASE — SUBMIT + LOAD SUGGESTIONS
+   ============================================================ */
+async function submitSuggestion(payload){
+  if (!supabaseClient){
+    console.warn('Supabase پیکربندی نشده — پیشنهاد فقط به‌صورت محلی نمایش داده می‌شود.');
+    prependSuggestion({ ...payload, created_at: new Date().toISOString() });
+    return true;
+  }
+  try{
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .insert([payload])
+      .select();
+    if (error) throw error;
+    if (data && data[0]) prependSuggestion(data[0]);
+    return true;
+  }catch(e){
+    console.error('Supabase insert error:', e);
+    return false;
+  }
+}
+
+const suggestionsList = document.getElementById('suggestions-list');
+const listEmpty = document.getElementById('list-empty');
+const listLoadingRow = document.getElementById('list-loading-row');
+const listEndRow = document.getElementById('list-end');
+const listSentinel = document.getElementById('list-sentinel');
+const countBadge = document.getElementById('count-badge');
+
+const PAGE_SIZE = 12;
+let suggestionsCache = [];
+let currentPage = 0;
+let hasMore = true;
+let isLoadingMore = false;
+let totalCount = 0;
+let realtimeSubscribed = false;
+
+function formatRelativeTime(iso){
+  const d = new Date(iso);
+  const diffSec = Math.floor((Date.now() - d.getTime())/1000);
+  if (diffSec < 60) return 'همین الان';
+  const diffMin = Math.floor(diffSec/60);
+  if (diffMin < 60) return `${diffMin} دقیقه پیش`;
+  const diffHr = Math.floor(diffMin/60);
+  if (diffHr < 24) return `${diffHr} ساعت پیش`;
+  const diffDay = Math.floor(diffHr/24);
+  if (diffDay < 7) return `${diffDay} روز پیش`;
+  return d.toLocaleDateString('fa-IR');
+}
+
+function updateCountBadge(){
+  const n = supabaseClient ? totalCount : suggestionsCache.length;
+  const fa = n.toLocaleString('fa-IR');
+  countBadge.textContent = `${fa} پیشنهاد`;
+  listEmpty.style.display = n === 0 ? 'block' : 'none';
+}
+
+function renderSuggestionItem(item){
+  const el = document.createElement('div');
+  el.className = 'suggestion-item';
+  const by = item.suggested_by ? escapeHtml(item.suggested_by) : 'ناشناس';
+  const art = item.artwork_url;
+  el.innerHTML = `
+    <div class="icon">${art ? `<img src="${art}" alt="">` : '<i class="fa-solid fa-heart"></i>'}</div>
+    <div class="info">
+      <div class="t">${escapeHtml(item.track_name)}</div>
+      <div class="a">${escapeHtml(item.artist_name)}</div>
+    </div>
+    <div class="who"><span class="who-name">${by}</span><span class="time">${formatRelativeTime(item.created_at)}</span></div>
+  `;
+  return el;
+}
+
+function prependSuggestion(item){
+  suggestionsCache.unshift(item);
+  totalCount += 1;
+  const el = renderSuggestionItem(item);
+  suggestionsList.insertBefore(el, suggestionsList.firstChild);
+  updateCountBadge();
+}
+
+/* ---- Infinite scroll: fetch one page at a time via IntersectionObserver ---- */
+let scrollObserver = null;
+
+function setupInfiniteScroll(){
+  if (scrollObserver) scrollObserver.disconnect();
+  scrollObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if (entry.isIntersecting) fetchNextSuggestionsPage();
+    });
+  }, { rootMargin: '400px 0px' });
+  scrollObserver.observe(listSentinel);
+}
+
+async function fetchNextSuggestionsPage(){
+  if (!supabaseClient || isLoadingMore || !hasMore) return;
+  isLoadingMore = true;
+  listLoadingRow.style.display = 'flex';
+  listEndRow.style.display = 'none';
+
+  const from = currentPage * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  try{
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (error) throw error;
+
+    if (data && data.length){
+      data.forEach(item=>{
+        suggestionsCache.push(item);
+        suggestionsList.appendChild(renderSuggestionItem(item));
+      });
+      currentPage += 1;
+      if (data.length < PAGE_SIZE) hasMore = false;
+    } else {
+      hasMore = false;
+    }
+  }catch(e){
+    console.error('خطا در بارگذاری پیشنهادهای بیشتر:', e);
+  }finally{
+    isLoadingMore = false;
+    listLoadingRow.style.display = 'none';
+    listEndRow.style.display = (!hasMore && suggestionsCache.length > 0) ? 'block' : 'none';
+    updateCountBadge();
+  }
+}
+
+async function loadSuggestions(){
+  if (!supabaseClient){
+    updateCountBadge();
+    return;
+  }
+
+  // reset pagination state (safe to call more than once, e.g. on re-entry)
+  suggestionsCache = [];
+  currentPage = 0;
+  hasMore = true;
+  suggestionsList.innerHTML = '';
+
+  try{
+    const { count, error: countError } = await supabaseClient
+      .from(TABLE_NAME)
+      .select('*', { count: 'exact', head: true });
+    if (countError) throw countError;
+    totalCount = count || 0;
+  }catch(e){
+    console.error('خطا در شمارش پیشنهادها:', e);
+  }
+
+  updateCountBadge();
+  await fetchNextSuggestionsPage();
+  setupInfiniteScroll();
+
+  if (!realtimeSubscribed){
+    realtimeSubscribed = true;
+    // Realtime: new suggestions from other guests appear live at the top
+    supabaseClient
+      .channel('suggestions-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: TABLE_NAME }, (payload)=>{
+        const exists = suggestionsCache.some(s => s.id === payload.new.id);
+        if (!exists) prependSuggestion(payload.new);
+      })
+      .subscribe();
+  }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+const toast = document.getElementById('toast');
+const toastText = document.getElementById('toast-text');
+function showToast(msg){
+  toastText.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
