@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -124,78 +125,6 @@ body::before{
 }
 .landing-inner{ max-width: 720px; position:relative; z-index:3; width:100%; }
 
-/* ============================================================
-   ENVELOPE + LETTER-UNFOLD REVEAL
-   ============================================================
-   A static gold envelope sits behind as a backdrop (with a
-   triangular flap silhouette peeking above it, like the back of
-   a real envelope). The white invitation card itself unfolds
-   open on top of it — starting as a thin folded strip with a
-   center crease, then unfolding upward into the full card. This
-   avoids fragile 3D-flip tricks and reads as a believable
-   "opening a letter" motion in every browser.
-*/
-.envelope-scene{
-  width: 100%;
-  max-width: 560px;
-  margin: 0 auto;
-}
-.envelope-base{
-  position: relative;
-  margin: 34px auto 0;
-  padding: 16px 16px 26px;
-  background: linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 100%);
-  border-radius: 8px 8px 28px 28px;
-  box-shadow: var(--shadow-soft);
-}
-.envelope-base::before{
-  /* triangular flap silhouette, suggesting the envelope's open back */
-  content:"";
-  position:absolute;
-  top:-28px; left:10%; right:10%;
-  height:46px;
-  background: inherit;
-  clip-path: polygon(0 100%, 50% 4%, 100% 100%);
-  border-radius: 3px 3px 0 0;
-}
-
-.invitation-card{
-  position: relative;
-  z-index: 2;
-  background: var(--white);
-  border: 1px solid rgba(201,162,39,.3);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lift);
-  padding: 52px 30px 40px;
-  text-align: center;
-  overflow: hidden;
-  transform-origin: 50% 50%;
-  transform: scaleY(.045);
-  opacity: 0;
-  animation: letter-unfold 1.2s .5s cubic-bezier(.65,0,.28,1) forwards;
-}
-@keyframes letter-unfold{
-  0%{   transform: scaleY(.045); opacity: 0; }
-  30%{  opacity: 1; }
-  62%{  transform: scaleY(1.05); }
-  100%{ transform: scaleY(1); opacity: 1; }
-}
-.invitation-card::after{
-  /* center fold crease, fades out as the letter finishes unfolding */
-  content:"";
-  position:absolute; left:8%; right:8%; top:50%;
-  height:1px;
-  background: rgba(201,162,39,.55);
-  transform: translateY(-50%);
-  animation: crease-fade 1.2s .5s ease forwards;
-  pointer-events: none;
-}
-@keyframes crease-fade{
-  0%{ opacity:.85; }
-  60%{ opacity:.5; }
-  100%{ opacity:0; }
-}
-
 .eyebrow{
   display:inline-flex;
   align-items:center;
@@ -207,16 +136,16 @@ body::before{
   text-transform: uppercase;
   margin-bottom: 22px;
   opacity:0;
-  animation: rise .9s 1.9s ease forwards;
+  animation: rise .9s .1s ease forwards;
 }
 .eyebrow .line{ width: 34px; height:1px; background: var(--gold); display:inline-block; }
 
 .hero-title{
-  font-size: clamp(2.4rem, 6vw, 4.4rem);
+  font-size: clamp(2.2rem, 5.6vw, 4rem);
   line-height: 1.25;
   color: var(--ink);
   opacity:0;
-  animation: rise 1s 2.05s ease forwards;
+  animation: rise 1s .25s ease forwards;
 }
 .hero-title .ring-icon{
   display:inline-block;
@@ -231,7 +160,7 @@ body::before{
   width: 220px; height: 18px;
   margin: 10px auto 26px;
   opacity:0;
-  animation: rise 1s 2.2s ease forwards;
+  animation: rise 1s .4s ease forwards;
 }
 .hero-underline path{
   stroke: var(--gold);
@@ -240,7 +169,7 @@ body::before{
   stroke-linecap: round;
   stroke-dasharray: 300;
   stroke-dashoffset: 300;
-  animation: draw 1.4s 2.4s ease forwards;
+  animation: draw 1.4s .6s ease forwards;
 }
 @keyframes draw{ to{ stroke-dashoffset:0; } }
 
@@ -249,9 +178,9 @@ body::before{
   color: var(--ink-soft);
   line-height: 2;
   max-width: 520px;
-  margin: 0 auto 36px;
+  margin: 0 auto 40px;
   opacity:0;
-  animation: rise 1s 2.35s ease forwards;
+  animation: rise 1s .55s ease forwards;
 }
 
 @keyframes rise{
@@ -259,56 +188,137 @@ body::before{
   to{ opacity:1; transform: translateY(0); }
 }
 
-/* RSVP-style entry link — a quiet line of text with a hand-drawn
-   underline, like a signature settling onto paper */
-.rsvp-link{
-  position:relative;
-  display:inline-flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-  color: var(--rose-deep);
-  background: none;
-  text-decoration:none;
-  opacity:0;
-  animation: rise 1s 2.7s ease forwards;
-  -webkit-tap-highlight-color: transparent;
-  transition: color .25s ease, transform .25s ease;
+/* ============================================================
+   3D ENVELOPE — turns over from back to front, then opens on
+   click (wax seal breaks, flap lifts) and hands off to the app.
+   ============================================================ */
+.envelope-scene{
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  perspective: 1500px;
+  opacity: 0;
+  animation: rise 1s .8s ease forwards;
 }
-.rsvp-link .rsvp-text{
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  letter-spacing: .03em;
+.envelope-3d{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  animation: envelope-turn 1.3s 1.15s cubic-bezier(.45,0,.2,1) forwards;
+  pointer-events: none;
+  box-shadow: var(--shadow-lift); /* lives here, not on the flipping faces — avoids a Safari glitch where box-shadow leaks through backface-visibility:hidden */
+  border-radius: 10px;
+  will-change: transform;
 }
-.rsvp-link:hover{ transform: translateY(-2px); color: var(--rose); }
-.rsvp-link:active{ transform: translateY(0) scale(.98); }
-.rsvp-underline{
-  width: 150px; height: 14px;
+.envelope-3d.ready{ pointer-events: auto; cursor: pointer; }
+@keyframes envelope-turn{
+  to{ transform: rotateY(0deg); }
 }
-.rsvp-underline path{
-  stroke: var(--gold);
-  stroke-width: 2.5;
-  fill:none;
-  stroke-linecap: round;
-  stroke-dasharray: 220;
-  stroke-dashoffset: 220;
-  animation: draw 1.1s 3.2s ease forwards;
-}
-.rsvp-link:hover .rsvp-underline path{ stroke: var(--rose); }
 
-.scroll-hint{
-  margin-top: 26px;
+.env-face{
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* ---- BACK of the envelope: visible first, plain paper-gold
+   with the classic diagonal fold seams meeting in the middle ---- */
+.env-back{
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(135deg, transparent 49.3%, rgba(158,38,80,.28) 49.7%, rgba(158,38,80,.28) 50.3%, transparent 50.7%),
+    linear-gradient(45deg,  transparent 49.3%, rgba(158,38,80,.28) 49.7%, rgba(158,38,80,.28) 50.3%, transparent 50.7%),
+    linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 100%);
+}
+.env-back::after{
+  /* small center seam dot where all four folds meet */
+  content:"";
+  position:absolute; top:50%; left:50%;
+  width:8px; height:8px;
+  background: rgba(158,38,80,.35);
+  border-radius:50%;
+  transform: translate(-50%,-50%);
+}
+
+/* ---- FRONT of the envelope: closed pocket + flap + wax seal ---- */
+.env-front{ background: linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 100%); }
+.env-flap{
+  position:absolute; top:0; left:0; right:0; height:56%;
+  background: linear-gradient(200deg, var(--rose), var(--rose-deep));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  z-index: 3;
+  /* Plain 2D transform (no rotateX) — nesting a 3D rotation inside an
+     overflow:hidden, non-preserve-3d ancestor is what caused the warped,
+     glitchy look before. translate/scale/rotate composite correctly in
+     every browser regardless of the parent's clipping context. */
+  transition: transform .7s cubic-bezier(.6,0,.22,1), opacity .55s ease .05s;
+}
+.envelope-3d.opening .env-flap{
+  transform: translateY(-78%) scale(.88) rotate(-7deg);
+  opacity: 0;
+}
+
+.wax-seal{
+  position:absolute; top:56%; left:50%;
+  width:52px; height:52px;
+  transform: translate(-50%,-50%);
+  border-radius:50%;
+  background: radial-gradient(circle at 34% 28%, #c1543a, #7c2415 72%);
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.35),
+    inset 0 -3px 6px rgba(0,0,0,.35),
+    inset 0 2px 4px rgba(255,255,255,.25),
+    inset 0 0 0 3px rgba(0,0,0,.12); /* embossed ring, like a stamped die */
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(255,255,255,.92);
+  font-size: 19px;
+  z-index: 5;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform .5s cubic-bezier(.34,1.56,.64,1), opacity .5s ease;
+}
+.wax-seal::before,
+.wax-seal::after{
+  /* small melted-wax drips at the base of the seal */
+  content:"";
+  position:absolute;
+  bottom:-5px;
+  width:9px; height:12px;
+  background: #7c2415;
+  border-radius: 50% 50% 60% 60%;
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,.35), inset 0 1px 2px rgba(255,255,255,.15);
+  z-index:-1;
+}
+.wax-seal::before{ left:8px; transform: rotate(-10deg); }
+.wax-seal::after{ right:8px; transform: rotate(10deg); }
+.wax-seal:hover{ transform: translate(-50%,-50%) scale(1.07); }
+.wax-seal:active{ transform: translate(-50%,-50%) scale(.95); }
+.envelope-3d.opening .wax-seal{
+  transform: translate(-50%,-50%) scale(.25) rotate(35deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.open-hint{
+  margin-top: 22px;
   font-size: 12px;
   color: var(--ink-soft);
   opacity: 0;
-  animation: rise 1s 3.4s ease forwards;
+  animation: rise 1s 2.6s ease forwards;
   display:flex; align-items:center; justify-content:center; gap:8px;
 }
 
 @media (max-width: 600px){
-  .invitation-card{ padding: 42px 20px 32px; }
-  .envelope-base{ margin-top: 24px; padding: 12px 12px 20px; }
+  .envelope-scene{ max-width: 240px; }
+  .wax-seal{ width:44px; height:44px; font-size:16px; }
+  .wax-seal::before,.wax-seal::after{ width:7px; height:9px; bottom:-4px; }
+  .wax-seal::before{ left:6px; }
+  .wax-seal::after{ right:6px; }
 }
 
 /* ============================================================
@@ -721,6 +731,20 @@ body::before{
   color: #C9B9BF; font-size: .8rem;
 }
 
+/* Bottom video strip — full viewport width, fixed 80px height,
+   escapes #app-screen's max-width/padding via the full-bleed trick */
+.bottom-strip{
+  display: block;
+  width: 100vw;
+  height: 80px;
+  margin-top: 40px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  object-fit: cover;
+  object-position: center;
+  background: var(--cream-deep); /* shows while the video loads */
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
@@ -770,23 +794,23 @@ body::before{
      ============================================================ -->
 <section id="landing">
   <div class="landing-inner">
+    <div class="eyebrow"><span class="line"></span> به مراسم ما خوش آمدید <span class="line"></span></div>
+    <h1 class="hero-title">توی انتخاب موزیک‌ها همراهیمون کنید!<span class="ring-icon">💍</span></h1>
+    <svg class="hero-underline" viewBox="0 0 220 18"><path d="M4 12 Q 60 2, 110 10 T 216 8"/></svg>
+    <p class="hero-sub">با پیشنهاد آهنگ‌های موردعلاقه‌ات، به ما در ساختن خاطره‌ای فراموش‌نشدنی کمک کن. هر آهنگی که ما را برقصاند، همان چیزی‌ست که می‌خواهیم.</p>
+
     <div class="envelope-scene">
-      <div class="envelope-base">
-        <div class="invitation-card">
-          <div class="eyebrow"><span class="line"></span> به مراسم ما خوش آمدید <span class="line"></span></div>
-          <h1 class="hero-title">توی انتخاب موزیک‌ها همراهیمون کنید!<span class="ring-icon">💍</span></h1>
-          <svg class="hero-underline" viewBox="0 0 220 18"><path d="M4 12 Q 60 2, 110 10 T 216 8"/></svg>
-          <p class="hero-sub">با پیشنهاد آهنگ‌های موردعلاقه‌ات، به ما در ساختن خاطره‌ای فراموش‌نشدنی کمک کن. هر آهنگی که ما را برقصاند، همان چیزی‌ست که می‌خواهیم.</p>
-          <a href="javascript:void(0)" class="rsvp-link" id="enter-btn">
-            <span class="rsvp-text">ورود به مراسم</span>
-            <svg class="rsvp-underline" viewBox="0 0 160 14" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 8 Q 40 2, 80 7 T 156 6"/>
-            </svg>
-          </a>
-          <div class="scroll-hint"><i class="fa-solid fa-heart" style="font-size:10px;color:var(--rose)"></i> بزن بریم آهنگ پیشنهاد بدیم</div>
+      <div class="envelope-3d" id="envelope-3d">
+        <div class="env-face env-back"></div>
+        <div class="env-face env-front">
+          <div class="env-flap" id="env-flap"></div>
+          <button class="wax-seal" id="wax-seal" aria-label="باز کردن دعوت‌نامه و ورود به مراسم">
+            <i class="fa-solid fa-heart"></i>
+          </button>
         </div>
       </div>
     </div>
+    <div class="open-hint"><i class="fa-solid fa-heart" style="font-size:10px;color:var(--rose)"></i> برای ورود، مهر رو باز کن</div>
   </div>
 </section>
 
@@ -828,6 +852,11 @@ body::before{
   </section>
 
   <div class="site-footer">ساخته‌شده با ❤️ برای بهترین روز زندگی‌مان</div>
+
+  <!-- Bottom strip video (replaces the uploaded ezgif clip) — 100% width, 80px tall, cropped/centered -->
+  <video class="bottom-strip" autoplay muted loop playsinline>
+    <source src="bottom-strip.mp4" type="video/mp4">
+  </video>
 </main>
 
 <!-- ============================================================
@@ -913,7 +942,8 @@ try{
    ============================================================ */
 const landing = document.getElementById('landing');
 const appScreen = document.getElementById('app-screen');
-const enterBtn = document.getElementById('enter-btn');
+const envelope3d = document.getElementById('envelope-3d');
+const waxSeal = document.getElementById('wax-seal');
 
 window.addEventListener('load', ()=>{
   if (window.confetti){
@@ -923,13 +953,55 @@ window.addEventListener('load', ()=>{
   }
 });
 
-enterBtn.addEventListener('click', ()=>{
-  landing.classList.add('hidden');
-  appScreen.classList.add('visible');
-  window.scrollTo({ top:0, behavior:'smooth' });
-  if (window.AOS) AOS.refreshHard();
-  loadSuggestions();
+// The envelope isn't clickable until it finishes turning from back to front
+envelope3d.addEventListener('animationend', (e)=>{
+  if (e.animationName === 'envelope-turn') envelope3d.classList.add('ready');
 });
+
+let envelopeOpened = false;
+
+function openEnvelopeAndEnter(){
+  if (envelopeOpened || !envelope3d.classList.contains('ready')) return;
+  envelopeOpened = true;
+  envelope3d.classList.add('opening');
+  setTimeout(playLastSuggestedSong, 350);
+  setTimeout(()=>{
+    landing.classList.add('hidden');
+    appScreen.classList.add('visible');
+    window.scrollTo({ top:0, behavior:'smooth' });
+    if (window.AOS) AOS.refreshHard();
+    loadSuggestions();
+  }, 950);
+}
+
+waxSeal.addEventListener('click', (e)=>{ e.stopPropagation(); openEnvelopeAndEnter(); });
+envelope3d.addEventListener('click', openEnvelopeAndEnter);
+
+// Plays the most recently suggested song's preview the moment the
+// envelope opens, so the party starts as soon as the guest walks in.
+async function playLastSuggestedSong(){
+  if (!supabaseClient) return;
+  try{
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select('preview_url, track_name, artist_name')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data && data[0];
+    if (row && row.preview_url){
+      stopActiveAudio();
+      const audio = new Audio(row.preview_url);
+      audio.play().then(()=>{
+        if (row.track_name) showToast(`🎵 آخرین پیشنهاد: ${row.track_name}${row.artist_name ? ' — ' + row.artist_name : ''}`);
+      }).catch(()=>{});
+      activeAudio = audio;
+      audio.addEventListener('ended', ()=>{ if (activeAudio === audio) activeAudio = null; });
+    }
+  }catch(e){
+    console.warn('پخش آخرین آهنگ پیشنهادی ممکن نشد:', e);
+  }
+}
 
 if (window.AOS) AOS.init({ duration: 700, once: true, offset: 40 });
 
