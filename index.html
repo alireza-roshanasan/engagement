@@ -42,6 +42,7 @@
   --radius-lg: 26px;
   --radius-md: 16px;
   --radius-sm: 10px;
+  --bottom-bar-h: 80px; /* height of the fixed bottom media bar */
   --shadow-soft: 0 10px 40px rgba(158, 38, 80, 0.12);
   --shadow-lift: 0 18px 50px rgba(158, 38, 80, 0.20);
 }
@@ -106,12 +107,12 @@ body::before{
 #landing{
   position: relative;
   min-height: 100vh;
-  min-height: 100svh;
+  min-height: 100svh; /* mobile browser chrome-safe viewport height */
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
-  padding: 40px 20px calc(40px + env(safe-area-inset-bottom));
+  padding: 40px 20px calc(40px + env(safe-area-inset-bottom) + var(--bottom-bar-h));
   padding-top: calc(40px + env(safe-area-inset-top));
   z-index: 2;
   transition: opacity .7s ease, visibility .7s ease;
@@ -188,7 +189,8 @@ body::before{
 }
 
 /* ============================================================
-   3D ENVELOPE
+   3D ENVELOPE — turns over from back to front, then opens on
+   click (wax seal breaks, flap lifts) and hands off to the app.
    ============================================================ */
 .envelope-scene{
   width: 100%;
@@ -206,7 +208,7 @@ body::before{
   transform: rotateY(180deg);
   animation: envelope-turn 1.3s 1.15s cubic-bezier(.45,0,.2,1) forwards;
   pointer-events: none;
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-lift); /* lives here, not on the flipping faces — avoids a Safari glitch where box-shadow leaks through backface-visibility:hidden */
   border-radius: 10px;
   will-change: transform;
 }
@@ -222,6 +224,8 @@ body::before{
   overflow: hidden;
 }
 
+/* ---- BACK of the envelope: visible first, plain paper-gold
+   with the classic diagonal fold seams meeting in the middle ---- */
 .env-back{
   transform: rotateY(180deg);
   background:
@@ -230,6 +234,7 @@ body::before{
     linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 100%);
 }
 .env-back::after{
+  /* small center seam dot where all four folds meet */
   content:"";
   position:absolute; top:50%; left:50%;
   width:8px; height:8px;
@@ -238,6 +243,7 @@ body::before{
   transform: translate(-50%,-50%);
 }
 
+/* ---- FRONT of the envelope: closed pocket + flap + wax seal ---- */
 .env-front{ background: linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 100%); }
 .env-flap{
   position:absolute; top:0; left:0; right:0; height:56%;
@@ -245,6 +251,10 @@ body::before{
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   transform-origin: top center;
   z-index: 3;
+  /* Plain 2D transform (no rotateX) — nesting a 3D rotation inside an
+     overflow:hidden, non-preserve-3d ancestor is what caused the warped,
+     glitchy look before. translate/scale/rotate composite correctly in
+     every browser regardless of the parent's clipping context. */
   transition: transform .7s cubic-bezier(.6,0,.22,1), opacity .55s ease .05s;
 }
 .envelope-3d.opening .env-flap{
@@ -262,7 +272,7 @@ body::before{
     0 4px 10px rgba(0,0,0,.35),
     inset 0 -3px 6px rgba(0,0,0,.35),
     inset 0 2px 4px rgba(255,255,255,.25),
-    inset 0 0 0 3px rgba(0,0,0,.12);
+    inset 0 0 0 3px rgba(0,0,0,.12); /* embossed ring, like a stamped die */
   display:flex; align-items:center; justify-content:center;
   color: rgba(255,255,255,.92);
   font-size: 19px;
@@ -274,6 +284,7 @@ body::before{
 }
 .wax-seal::before,
 .wax-seal::after{
+  /* small melted-wax drips at the base of the seal */
   content:"";
   position:absolute;
   bottom:-5px;
@@ -318,7 +329,7 @@ body::before{
   z-index: 2;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 50px 22px calc(90px + env(safe-area-inset-bottom));
+  padding: 50px 22px calc(90px + env(safe-area-inset-bottom) + var(--bottom-bar-h));
   padding-left: max(22px, env(safe-area-inset-left));
   padding-right: max(22px, env(safe-area-inset-right));
   display:none;
@@ -339,6 +350,7 @@ body::before{
   font-size: .98rem;
 }
 
+/* Search */
 .search-wrap{
   max-width: 640px;
   margin: 0 auto 46px;
@@ -366,7 +378,7 @@ body::before{
   border:none;
   outline:none;
   background:transparent;
-  font-size: 16px;
+  font-size: 16px; /* keep >=16px to stop iOS Safari auto-zoom on focus */
   padding: 12px 4px;
   color: var(--ink);
 }
@@ -381,13 +393,14 @@ body::before{
   display:flex; align-items:center; justify-content:center; gap:8px;
   transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
   white-space: nowrap;
-  min-height: 46px;
+  min-height: 46px; /* comfortable tap target */
   flex-shrink: 0;
 }
 .search-btn:hover{ transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 10px 24px rgba(158,38,80,.3); }
 .search-btn:active{ transform: translateY(0) scale(.97); }
 .search-btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
 
+/* Results */
 .section-title{
   display:flex; align-items:center; gap:12px;
   margin: 0 0 20px;
@@ -474,6 +487,7 @@ body::before{
 .suggest-btn:hover{ background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color:#fff; transform: translateY(-1px); }
 .suggest-btn.added{ background: var(--mint); color: #1c4d3f; pointer-events:none; }
 
+/* Skeletons */
 .skeleton-card{
   background: var(--white);
   border-radius: var(--radius-md);
@@ -503,6 +517,7 @@ body::before{
 }
 @keyframes heartbeat{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.2); } }
 
+/* Empty / error state */
 .empty-state{
   text-align:center;
   padding: 60px 20px;
@@ -518,6 +533,7 @@ body::before{
   font-size: .9rem;
 }
 
+/* Suggestions list */
 .suggestions-section{
   margin-top: 60px;
   background: var(--white);
@@ -603,6 +619,9 @@ body::before{
 }
 #list-sentinel{ height: 1px; }
 
+/* ============================================================
+   MODAL
+   ============================================================ */
 .modal-overlay{
   position: fixed; inset:0;
   background: rgba(59,43,49,0.55);
@@ -651,7 +670,7 @@ body::before{
   border: 1.5px solid #EEDFCF;
   border-radius: 12px;
   padding: 13px 16px;
-  font-size: 16px;
+  font-size: 16px; /* keep >=16px to stop iOS Safari auto-zoom on focus */
   outline:none;
   background:#fff;
   transition: border-color .25s ease;
@@ -673,6 +692,7 @@ body::before{
 .btn-confirm:hover{ transform: translateY(-2px); }
 .btn-confirm:disabled{ opacity:.6; pointer-events:none; }
 
+/* Success overlay inside modal */
 .success-view{ display:none; flex-direction:column; align-items:center; gap:10px; }
 .success-view.show{ display:flex; }
 .success-view .check{
@@ -686,6 +706,7 @@ body::before{
 .success-view h3{ font-size:1.15rem; }
 .success-view p{ color: var(--ink-soft); font-size:.9rem; }
 
+/* Toast */
 #toast{
   position: fixed;
   bottom: calc(26px + env(safe-area-inset-bottom));
@@ -704,66 +725,47 @@ body::before{
 #toast.show{ opacity:1; visibility:visible; transform: translateX(-50%) translateY(0); }
 #toast i{ color: var(--mint); }
 
+/* Footer note */
 .site-footer{
   text-align:center; margin-top: 60px;
   color: #C9B9BF; font-size: .8rem;
 }
 
-/* Bottom video strip */
-.bottom-strip{
-  display: block;
-  width: 100vw;
-  height: 80px;
-  margin-top: 40px;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  object-fit: cover;
-  object-position: center;
-  background: var(--cream-deep);
-}
-
 /* ============================================================
-   BRIDE CHARACTER — FIXED, STATIC, FULL WIDTH
+   BOTTOM MEDIA BAR — fixed to the viewport bottom at all times
+   (landing screen and app screen alike), short and full-width.
+   The clip has a white background; instead of hiding it behind a
+   crop, mix-blend-mode:multiply lets the white drop out naturally
+   against the bar's own cream backdrop, while `isolation:isolate`
+   keeps that blend contained to this bar only — so content
+   scrolling underneath it never bleeds into the blend result.
    ============================================================ */
-.bride-strip {
+/* ============================================================
+   BOTTOM MEDIA BAR — fixed to the viewport bottom at all times
+   (landing screen and app screen alike), short and full-width.
+   The wrapper itself has NO background/border/shadow of its own —
+   it's fully transparent, so nothing reads as a separate "box"
+   sitting on the page. Only the gif is visible, and its white
+   background is dropped out via mix-blend-mode:multiply against
+   whatever is actually behind it (the page's own cream tone).
+   ============================================================ */
+.bottom-media-bar{
   position: fixed;
-  bottom: 0;
-  left: 0;
+  left: 0; right: 0; bottom: 0;
   width: 100%;
-  height: 70px;
-  z-index: 9999;
-  pointer-events: none;
-  background: var(--cream);
-  isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  height: calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+  background: transparent;
+  pointer-events: none; /* purely decorative — never blocks taps on content behind it */
+  z-index: 45; /* above page content, below the modal (100) and toast (200) */
 }
-
-.bride-strip::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to right,
-    var(--cream) 0%,
-    transparent 10%,
-    transparent 90%,
-    var(--cream) 100%
-  );
-  z-index: 2;
-}
-
-.bride-gif {
+.bottom-media-bar img{
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: center bottom;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
+  object-position: center;
   mix-blend-mode: multiply;
 }
 
@@ -773,14 +775,12 @@ body::before{
 }
 
 @media (max-width: 600px){
-  .bride-strip {
-    height: 60px;
-  }
   .seal-btn{ width:152px; height:152px; }
   .seal-btn span{ font-size: 13px; }
   .suggestions-head{ flex-direction:column; align-items:flex-start; }
   .modal-box{ padding: 26px 18px; }
 
+  /* Stack the search bar so the button always has room and stays tappable */
   .search-box{
     flex-wrap: wrap;
     border-radius: 22px;
@@ -791,7 +791,7 @@ body::before{
   .search-btn{ order:3; width: 100%; flex-basis: 100%; justify-content:center; }
 
   .app-header{ margin-bottom: 28px; }
-  #app-screen{ padding: 36px 16px calc(70px + env(safe-area-inset-bottom)); }
+  #app-screen{ padding: 36px 16px calc(70px + var(--bottom-bar-h)); }
 
   .results-grid{ grid-template-columns: 1fr; gap: 14px; }
 
@@ -876,18 +876,7 @@ body::before{
   </section>
 
   <div class="site-footer">ساخته‌شده با ❤️ برای بهترین روز زندگی‌مان</div>
-
-  <video class="bottom-strip" autoplay muted loop playsinline>
-    <source src="bottom-strip.mp4" type="video/mp4">
-  </video>
 </main>
-
-<!-- ============================================================
-     BRIDE CHARACTER STRIP — Fixed at bottom
-     ============================================================ -->
-<div class="bride-strip" aria-hidden="true">
-  <img src="YOUR-BRIDE-GIF-URL.gif" alt="" class="bride-gif">
-</div>
 
 <!-- ============================================================
      MODAL
@@ -916,6 +905,16 @@ body::before{
   </div>
 </div>
 
+<!-- ============================================================
+     BOTTOM MEDIA BAR — fixed to the viewport bottom, visible on
+     both the landing screen and the app screen at all times.
+     The gif has a white background; mix-blend-mode:multiply
+     drops the white out against this bar's cream backdrop.
+     ============================================================ -->
+<div class="bottom-media-bar">
+  <img src="bottom-strip.gif" alt="">
+</div>
+
 <div id="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-text"></span></div>
 
 <!-- ============================================================
@@ -927,6 +926,13 @@ body::before{
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
 <script>
+/* ============================================================
+   CONFIG — پر کردن این بخش الزامی است
+   ============================================================
+   ۱) در supabase.com یک پروژه‌ی رایگان بساز.
+   ۲) از Project Settings > API مقادیر زیر را کپی کن.
+   ۳) کوئری ساخت جدول را از README.md اجرا کن.
+*/
 const SUPABASE_URL = 'https://fwwfoiwxnrdgblmppcgw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_klORiZZhwNeMiayhbcDang__JkXdoyK';
 const TABLE_NAME = 'suggestions';
@@ -938,6 +944,9 @@ try{
   }
 }catch(e){ console.warn('Supabase init skipped:', e); }
 
+/* ============================================================
+   PARTICLE FIELD (falling hearts / petals)
+   ============================================================ */
 (function initParticles(){
   const field = document.getElementById('particle-field');
   const symbols = ['💕','🌸','✨','💛'];
@@ -957,6 +966,9 @@ try{
   }
 })();
 
+/* ============================================================
+   LANDING → APP TRANSITION
+   ============================================================ */
 const landing = document.getElementById('landing');
 const appScreen = document.getElementById('app-screen');
 const envelope3d = document.getElementById('envelope-3d');
@@ -970,6 +982,7 @@ window.addEventListener('load', ()=>{
   }
 });
 
+// The envelope isn't clickable until it finishes turning from back to front
 envelope3d.addEventListener('animationend', (e)=>{
   if (e.animationName === 'envelope-turn') envelope3d.classList.add('ready');
 });
@@ -993,6 +1006,8 @@ function openEnvelopeAndEnter(){
 waxSeal.addEventListener('click', (e)=>{ e.stopPropagation(); openEnvelopeAndEnter(); });
 envelope3d.addEventListener('click', openEnvelopeAndEnter);
 
+// Plays the most recently suggested song's preview the moment the
+// envelope opens, so the party starts as soon as the guest walks in.
 async function playLastSuggestedSong(){
   if (!supabaseClient) return;
   try{
@@ -1019,6 +1034,9 @@ async function playLastSuggestedSong(){
 
 if (window.AOS) AOS.init({ duration: 700, once: true, offset: 40 });
 
+/* ============================================================
+   PERSIAN TEXT NORMALIZATION
+   ============================================================ */
 function normalize(str){
   if (!str) return '';
   return str
@@ -1026,12 +1044,15 @@ function normalize(str){
     .toLowerCase()
     .replace(/ي/g, 'ی')
     .replace(/ك/g, 'ک')
-    .replace(/[\u064B-\u065F\u0670]/g, '')
-    .replace(/[\u200c\u200f\u200e]/g, ' ')
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove diacritics
+    .replace(/[\u200c\u200f\u200e]/g, ' ') // ZWNJ / direction marks
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+/* ============================================================
+   LOCAL DATASET SEARCH  (falls back to iTunes API)
+   ============================================================ */
 let localSongs = [];
 let localLoaded = false;
 
@@ -1059,6 +1080,9 @@ function searchLocal(query){
 }
 
 async function searchItunes(query){
+  // NOTE: `media=music` makes iTunes 301-redirect to a `musics://` URL that
+  // fetch() cannot follow. `entity=song` hits the same search index and
+  // returns JSON directly with CORS enabled, so we use that instead.
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=24`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('iTunes API error');
@@ -1081,6 +1105,9 @@ async function performSearch(query){
   return { results, usedFallback };
 }
 
+/* ============================================================
+   RENDER RESULTS
+   ============================================================ */
 const resultsArea = document.getElementById('results-area');
 const resultsTitle = document.getElementById('results-title');
 const searchInput = document.getElementById('search-input');
@@ -1191,6 +1218,8 @@ function renderResults(list, source){
     }
 
     card.querySelector('.suggest-btn').addEventListener('click', ()=>{
+      // Carry every field we might ever want to store — structured fields
+      // for display/queries, plus the full raw object as a safety net.
       openModal({
         track, artist,
         trackId: song.trackId || null,
@@ -1242,6 +1271,9 @@ async function handleSearch(){
 searchBtn.addEventListener('click', handleSearch);
 searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') handleSearch(); });
 
+/* ============================================================
+   MODAL
+   ============================================================ */
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTrackName = document.getElementById('modal-track-name');
 const modalArtistName = document.getElementById('modal-artist-name');
@@ -1276,6 +1308,8 @@ modalConfirm.addEventListener('click', async ()=>{
   modalConfirm.disabled = true;
   modalConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ثبت...';
 
+  // Store every field we have, structured for querying/display, plus the
+  // full raw source object in raw_data (jsonb) as a catch-all.
   const payload = {
     track_id: pendingSuggestion.trackId,
     track_name: pendingSuggestion.track,
@@ -1305,6 +1339,7 @@ modalConfirm.addEventListener('click', async ()=>{
     if (window.confetti){
       confetti({ particleCount: 60, spread: 80, origin: { y: 0.6 }, colors: ['#C7376A','#C9A227','#8FD9C4'] });
     }
+    // mark the suggest button as added, if still visible
     markSuggestButtonAdded(pendingSuggestion);
     setTimeout(closeModal, 1600);
   } else {
@@ -1324,6 +1359,9 @@ function markSuggestButtonAdded(song){
   });
 }
 
+/* ============================================================
+   SUPABASE — SUBMIT + LOAD SUGGESTIONS
+   ============================================================ */
 async function submitSuggestion(payload){
   if (!supabaseClient){
     console.warn('Supabase پیکربندی نشده — پیشنهاد فقط به‌صورت محلی نمایش داده می‌شود.');
@@ -1411,6 +1449,7 @@ function prependSuggestion(item){
   updateCountBadge();
 }
 
+/* ---- Infinite scroll: fetch one page at a time via IntersectionObserver ---- */
 let scrollObserver = null;
 
 function setupInfiniteScroll(){
@@ -1466,6 +1505,7 @@ async function loadSuggestions(){
     return;
   }
 
+  // reset pagination state (safe to call more than once, e.g. on re-entry)
   suggestionsCache = [];
   currentPage = 0;
   hasMore = true;
@@ -1487,6 +1527,7 @@ async function loadSuggestions(){
 
   if (!realtimeSubscribed){
     realtimeSubscribed = true;
+    // Realtime: new suggestions from other guests appear live at the top
     supabaseClient
       .channel('suggestions-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: TABLE_NAME }, (payload)=>{
@@ -1497,6 +1538,9 @@ async function loadSuggestions(){
   }
 }
 
+/* ============================================================
+   TOAST
+   ============================================================ */
 const toast = document.getElementById('toast');
 const toastText = document.getElementById('toast-text');
 function showToast(msg){
