@@ -734,15 +734,6 @@ body::before{
 /* ============================================================
    BOTTOM MEDIA BAR — fixed to the viewport bottom at all times
    (landing screen and app screen alike), short and full-width.
-   The clip has a white background; instead of hiding it behind a
-   crop, mix-blend-mode:multiply lets the white drop out naturally
-   against the bar's own cream backdrop, while `isolation:isolate`
-   keeps that blend contained to this bar only — so content
-   scrolling underneath it never bleeds into the blend result.
-   ============================================================ */
-/* ============================================================
-   BOTTOM MEDIA BAR — fixed to the viewport bottom at all times
-   (landing screen and app screen alike), short and full-width.
    The wrapper itself has NO background/border/shadow of its own —
    it's fully transparent, so nothing reads as a separate "box"
    sitting on the page. Only the gif is visible, and its white
@@ -936,6 +927,7 @@ body::before{
 const SUPABASE_URL = 'https://fwwfoiwxnrdgblmppcgw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_klORiZZhwNeMiayhbcDang__JkXdoyK';
 const TABLE_NAME = 'suggestions';
+const VISITS_TABLE_NAME = 'visits';
 
 let supabaseClient = null;
 try{
@@ -943,6 +935,48 @@ try{
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 }catch(e){ console.warn('Supabase init skipped:', e); }
+
+/* ============================================================
+   VISIT COUNTER (write-only) — fires once per page load.
+   We only ever INSERT into `visits`; the anon key has no
+   select/update/delete rights on that table (see README/SQL),
+   so this code can never read anything back either.
+
+   The IP hash is computed client-side (SHA-256 over the IP +
+   a fixed string) purely so you can tell "same visitor came back"
+   from "brand new visitor" without storing a raw, reversible IP.
+   Note: since this runs in the browser, this is NOT a strong
+   anonymization guarantee (ad-blockers/VPNs can also block the
+   IP lookup) — it's a rough de-duplication signal, as requested.
+   ============================================================ */
+async function sha256Hex(input){
+  const enc = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function recordVisit(){
+  if (!supabaseClient) return;
+  try{
+    let ip = null;
+    try{
+      const res = await fetch('https://api.ipify.org?format=json');
+      if (res.ok){ ip = (await res.json()).ip; }
+    }catch(e){
+      // IP lookup is best-effort — the visit still gets recorded without it
+    }
+
+    const ipHash = ip ? await sha256Hex(ip + '|wedding-visit-salt') : null;
+
+    const { error } = await supabaseClient
+      .from(VISITS_TABLE_NAME)
+      .insert([{ ip_hash: ipHash }]);
+    if (error) throw error;
+  }catch(e){
+    console.warn('ثبت بازدید ممکن نشد:', e);
+  }
+}
+recordVisit();
 
 /* ============================================================
    PARTICLE FIELD (falling hearts / petals)
@@ -993,44 +1027,20 @@ function openEnvelopeAndEnter(){
   if (envelopeOpened || !envelope3d.classList.contains('ready')) return;
   envelopeOpened = true;
   envelope3d.classList.add('opening');
-  setTimeout(playLastSuggestedSong, 350);
   setTimeout(()=>{
     landing.classList.add('hidden');
     appScreen.classList.add('visible');
     window.scrollTo({ top:0, behavior:'smooth' });
     if (window.AOS) AOS.refreshHard();
+    // loadSuggestions() renders the list first, THEN kicks off autoplay —
+    // this is what fixes the "play button state is wrong" bug, since the
+    // button we mark as "playing" now actually exists in the DOM already.
     loadSuggestions();
   }, 950);
 }
 
 waxSeal.addEventListener('click', (e)=>{ e.stopPropagation(); openEnvelopeAndEnter(); });
 envelope3d.addEventListener('click', openEnvelopeAndEnter);
-
-// Plays the most recently suggested song's preview the moment the
-// envelope opens, so the party starts as soon as the guest walks in.
-async function playLastSuggestedSong(){
-  if (!supabaseClient) return;
-  try{
-    const { data, error } = await supabaseClient
-      .from(TABLE_NAME)
-      .select('preview_url, track_name, artist_name')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (error) throw error;
-    const row = data && data[0];
-    if (row && row.preview_url){
-      stopActiveAudio();
-      const audio = new Audio(row.preview_url);
-      audio.play().then(()=>{
-        if (row.track_name) showToast(`🎵 آخرین پیشنهاد: ${row.track_name}${row.artist_name ? ' — ' + row.artist_name : ''}`);
-      }).catch(()=>{});
-      activeAudio = audio;
-      audio.addEventListener('ended', ()=>{ if (activeAudio === audio) activeAudio = null; });
-    }
-  }catch(e){
-    console.warn('پخش آخرین آهنگ پیشنهادی ممکن نشد:', e);
-  }
-}
 
 if (window.AOS) AOS.init({ duration: 700, once: true, offset: 40 });
 
@@ -1142,8 +1152,18 @@ function yearFromDate(dateStr){
   return isNaN(y) ? '' : y;
 }
 
+/* ============================================================
+   AUDIO PLAYBACK (shared by search results + suggestion list)
+   ============================================================
+   - activeAudio / activeBtn: whatever preview is currently playing.
+   - autoplayActive / autoplayIndex: drive the "play last suggested
+     song, then automatically move to the next one" queue. Any
+     manual click on a preview button cancels the auto-chain.
+   ============================================================ */
 let activeAudio = null;
 let activeBtn = null;
+let autoplayActive = false;
+let autoplayIndex = -1;
 
 function stopActiveAudio(){
   if (activeAudio){ activeAudio.pause(); activeAudio.currentTime = 0; }
@@ -1151,16 +1171,88 @@ function stopActiveAudio(){
   activeAudio = null; activeBtn = null;
 }
 
+// Central place that actually creates and plays an <audio>. `auto: true`
+// means this play was triggered by the autoplay queue (so when it ends
+// naturally, we automatically continue to the next suggestion).
+function playAudioTrack(previewUrl, btn, opts = {}){
+  const { auto = false } = opts;
+  if (!previewUrl) return;
+  stopActiveAudio();
+
+  const audio = new Audio(previewUrl);
+  audio.play().catch(()=>{
+    if (!auto) showToast('پخش پیش‌نمایش ممکن نشد');
+    else autoplayActive = false; // don't loop forever on repeated failures
+  });
+  audio.addEventListener('ended', ()=>{
+    const wasAuto = autoplayActive;
+    stopActiveAudio();
+    if (wasAuto) playNextInAutoplay();
+  });
+
+  if (btn){
+    btn.classList.add('playing');
+    btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+  }
+  activeAudio = audio;
+  activeBtn = btn;
+}
+
+// Used for manual clicks (search results grid + suggestion list rows).
+// Clicking anything by hand always cancels the auto-advance chain.
 function togglePreview(btn, previewUrl){
   if (!previewUrl) return;
-  if (activeBtn === btn){ stopActiveAudio(); return; }
-  stopActiveAudio();
-  const audio = new Audio(previewUrl);
-  audio.play().catch(()=>showToast('پخش پیش‌نمایش ممکن نشد'));
-  audio.addEventListener('ended', stopActiveAudio);
-  btn.classList.add('playing');
-  btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-  activeAudio = audio; activeBtn = btn;
+  if (activeBtn === btn){
+    autoplayActive = false;
+    stopActiveAudio();
+    return;
+  }
+  autoplayActive = false;
+  playAudioTrack(previewUrl, btn, { auto: false });
+}
+
+// Finds the actual DOM button for a given suggestion row, so the
+// "playing" state always lands on a button that really exists.
+function findSuggestionButtonElement(item){
+  if (!item || item.id == null) return null;
+  const row = suggestionsList.querySelector(`.suggestion-item[data-sugg-id="${CSS.escape(String(item.id))}"]`);
+  return row ? row.querySelector('.sugg-preview-btn') : null;
+}
+
+// Starts the queue at the most recent suggestion (index 0).
+function startAutoplayFromTop(){
+  if (!suggestionsCache.length) return;
+  autoplayActive = true;
+  autoplayIndex = -1;
+  playNextInAutoplay();
+}
+
+// Advances the queue by one. Skips items without a preview, and will
+// fetch the next page from Supabase if we reach the end of what's
+// currently loaded. Stops quietly once there's nothing left to play.
+async function playNextInAutoplay(){
+  if (!autoplayActive) return;
+  autoplayIndex++;
+
+  if (autoplayIndex >= suggestionsCache.length){
+    if (supabaseClient && hasMore && !isLoadingMore){
+      await fetchNextSuggestionsPage();
+    }
+    if (autoplayIndex >= suggestionsCache.length){
+      autoplayActive = false;
+      return;
+    }
+  }
+
+  const item = suggestionsCache[autoplayIndex];
+  if (!item || !item.preview_url){
+    playNextInAutoplay();
+    return;
+  }
+
+  const btn = findSuggestionButtonElement(item);
+  playAudioTrack(item.preview_url, btn, { auto: true });
+  showToast(`🎵 در حال پخش: ${item.track_name}${item.artist_name ? ' — ' + item.artist_name : ''}`);
 }
 
 function renderResults(list, source){
@@ -1396,6 +1488,7 @@ let hasMore = true;
 let isLoadingMore = false;
 let totalCount = 0;
 let realtimeSubscribed = false;
+let localIdCounter = 0;
 
 function formatRelativeTime(iso){
   const d = new Date(iso);
@@ -1420,6 +1513,7 @@ function updateCountBadge(){
 function renderSuggestionItem(item){
   const el = document.createElement('div');
   el.className = 'suggestion-item';
+  el.dataset.suggId = String(item.id);
   const by = item.suggested_by ? escapeHtml(item.suggested_by) : 'ناشناس';
   const art = item.artwork_url;
   const preview = item.preview_url;
@@ -1442,8 +1536,17 @@ function renderSuggestionItem(item){
 }
 
 function prependSuggestion(item){
+  // Local-only fallback rows (no Supabase) don't have an `id` yet — give
+  // them a stable one so the autoplay queue can still find their button.
+  if (item.id == null) item.id = 'local-' + Date.now() + '-' + (localIdCounter++);
+
   suggestionsCache.unshift(item);
   totalCount += 1;
+
+  // A new item just landed in front of whatever the autoplay queue was
+  // pointing at, so shift the pointer to keep it on the same song.
+  if (autoplayActive && autoplayIndex >= 0) autoplayIndex++;
+
   const el = renderSuggestionItem(item);
   suggestionsList.insertBefore(el, suggestionsList.firstChild);
   updateCountBadge();
@@ -1523,6 +1626,12 @@ async function loadSuggestions(){
 
   updateCountBadge();
   await fetchNextSuggestionsPage();
+
+  // Now that the list (and its buttons) actually exist in the DOM, start
+  // playing the most recent suggestion — this is what makes the "playing"
+  // button state land on the right, real button instead of nothing.
+  startAutoplayFromTop();
+
   setupInfiniteScroll();
 
   if (!realtimeSubscribed){
